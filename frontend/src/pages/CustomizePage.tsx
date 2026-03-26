@@ -4,9 +4,11 @@ import { Link, useParams } from 'react-router-dom'
 
 import type { CustomizationOption } from '@/api/types'
 import { fetchCustomizationOptions, saveCustomizationSelection } from '@/api/client'
+import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatUsdFromCents } from '@/lib/utils'
 
 function groupByCategory(options: CustomizationOption[]) {
@@ -52,9 +54,7 @@ export default function CustomizePage() {
     })
   }
 
-  const runningTotal = options
-    .filter((o) => selected.has(o.id))
-    .reduce((s, o) => s + o.price_delta_cents, 0)
+  const runningTotal = options.filter((o) => selected.has(o.id)).reduce((s, o) => s + o.price_delta_cents, 0)
 
   const save = () => {
     if (!homeId) return
@@ -64,14 +64,33 @@ export default function CustomizePage() {
       .finally(() => setSaving(false))
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading options…</p>
-  if (error || !homeId) return <p className="text-destructive">{error ?? 'Missing home'}</p>
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-lg space-y-8">
+        <div className="space-y-3 border-b border-border/60 pb-8">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+        <Skeleton className="h-72 rounded-xl" />
+      </div>
+    )
+  }
+
+  if (error || !homeId) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-8 text-center">
+        <p className="text-destructive">{error ?? 'Missing home'}</p>
+      </div>
+    )
+  }
+
   if (!options.length) {
     return (
       <Empty
         title="No options for this plan"
         action={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="rounded-full">
             <Link to={`/homes/${homeId}`}>Back to home</Link>
           </Button>
         }
@@ -80,21 +99,27 @@ export default function CustomizePage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <div className="mx-auto max-w-lg space-y-8">
       <div>
-        <Button variant="ghost" size="sm" className="mb-2 px-0" asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2 mb-2 h-auto rounded-full px-2 text-muted-foreground hover:text-foreground"
+          asChild
+        >
           <Link to={`/homes/${homeId}`}>← Home detail</Link>
         </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">Explore options</h1>
-        <p className="text-sm text-muted-foreground">
-          Step {Math.min(step + 1, totalSteps)} of {totalSteps}. Prices shown reflect selected options.
-        </p>
-        <ProgressBar value={progress} className="mt-3" />
+        <PageHeader
+          eyebrow={`Step ${Math.min(step + 1, totalSteps)} of ${totalSteps}`}
+          title="Explore options"
+          description="Add upgrades and finishes. Your running total updates as you select items."
+        />
+        <ProgressBar value={progress} className="mt-4" />
       </div>
 
       {step < reviewStep ? (
         <section className="space-y-4">
-          <h2 className="text-lg font-medium capitalize">{groups[step]?.[0]}</h2>
+          <h2 className="font-display text-xl font-semibold capitalize text-foreground">{groups[step]?.[0]}</h2>
           <ul className="space-y-3">
             {(groups[step]?.[1] ?? []).map((o) => {
               const on = selected.has(o.id)
@@ -103,14 +128,14 @@ export default function CustomizePage() {
                   <button
                     type="button"
                     onClick={() => toggle(o.id)}
-                    className={`w-full rounded-lg border p-4 text-left transition hover:bg-muted/80 touch-manipulation ${
-                      on ? 'border-primary ring-2 ring-primary/20' : 'border-border'
+                    className={`w-full rounded-xl border p-4 text-left shadow-sm transition-all touch-manipulation ${
+                      on
+                        ? 'border-primary bg-primary/5 ring-2 ring-primary/25 shadow-md'
+                        : 'border-border/80 bg-card hover:border-border hover:bg-muted/40'
                     }`}
                   >
-                    <div className="font-medium">{o.label}</div>
-                    <div className="text-sm text-muted-foreground">
-                      +{formatUsdFromCents(o.price_delta_cents)}
-                    </div>
+                    <div className="font-semibold text-foreground">{o.label}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">+{formatUsdFromCents(o.price_delta_cents)}</div>
                   </button>
                 </li>
               )
@@ -118,34 +143,36 @@ export default function CustomizePage() {
           </ul>
         </section>
       ) : (
-        <Card>
-          <CardContent className="space-y-3 pt-6 text-sm">
+        <Card className="border-border/70 shadow-md shadow-black/[0.04]">
+          <CardContent className="space-y-4 pt-8 text-sm">
             <p>
               <span className="text-muted-foreground">Options selected:</span>{' '}
-              {selected.size ? [...selected].join(', ') : 'None'}
+              <span className="font-medium text-foreground">
+                {selected.size ? [...selected].join(', ') : 'None'}
+              </span>
             </p>
-            <p className="text-lg font-semibold">
+            <p className="font-display text-2xl font-semibold tracking-tight">
               Running total: {formatUsdFromCents(runningTotal)}
             </p>
             {savedTotal != null ? (
-              <p className="text-primary font-medium" role="status">
-                Configuration saved. Selected options: {formatUsdFromCents(savedTotal)}
+              <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 font-medium text-primary" role="status">
+                Configuration saved. Selected options total: {formatUsdFromCents(savedTotal)}
               </p>
             ) : null}
           </CardContent>
         </Card>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-        <Button type="button" variant="outline" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+        <Button type="button" variant="outline" className="rounded-full" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
           Back
         </Button>
         {step < reviewStep ? (
-          <Button type="button" onClick={() => setStep((s) => s + 1)}>
+          <Button type="button" className="rounded-full" onClick={() => setStep((s) => s + 1)}>
             Next
           </Button>
         ) : (
-          <Button type="button" disabled={saving} onClick={() => save()}>
+          <Button type="button" className="rounded-full" disabled={saving} onClick={() => save()}>
             {saving ? 'Saving…' : 'Save configuration'}
           </Button>
         )}
@@ -156,9 +183,9 @@ export default function CustomizePage() {
 
 function Empty({ title, action }: { title: string; action: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed p-10 text-center">
-      <p className="font-medium">{title}</p>
-      <div className="mt-4">{action}</div>
+    <div className="rounded-2xl border border-dashed border-border/80 bg-gradient-to-b from-muted/30 to-muted/10 px-8 py-14 text-center shadow-sm">
+      <p className="font-display text-lg font-semibold text-foreground">{title}</p>
+      <div className="mt-6">{action}</div>
     </div>
   )
 }

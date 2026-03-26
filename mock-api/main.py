@@ -7,6 +7,7 @@ Run: uvicorn main:app --reload --port 8000
 
 from __future__ import annotations
 
+import re
 import uuid
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -27,6 +28,12 @@ app.add_middleware(
 )
 
 # --- Fixtures (Clayton-style inventory + app domain) ---
+# Photo stills: Unsplash — suburban / new-build US homes, warm-climate look (Central Texas–appropriate).
+
+
+def _listing_img(photo_id: str) -> str:
+    return f"https://images.unsplash.com/photo-{photo_id}?auto=format&fit=crop&w=1600&q=82"
+
 
 FIXTURE_HOMES: list[dict[str, Any]] = [
     {
@@ -37,8 +44,13 @@ FIXTURE_HOMES: list[dict[str, Any]] = [
         "beds": 4,
         "baths": 2.5,
         "sqft": 2140,
-        "hero_image_url": "https://placehold.co/800x480/1a365d/white?text=Riverbend",
-        "gallery_urls": [],
+        "hero_image_url": _listing_img("1600585154340-be6161a56a0c"),
+        "gallery_urls": [
+            _listing_img("1600607687939-ce8a6c25118c"),
+            _listing_img("1600210492486-724fe5c67fb0"),
+            _listing_img("1564013799919-ab600027ffc6"),
+            _listing_img("1582268611958-ebfd161ef9cf"),
+        ],
         "summary": "Corner lot, updated kitchen, walkable to trails.",
         "match_score": 0.92,
         "community": "South Lamar",
@@ -51,8 +63,13 @@ FIXTURE_HOMES: list[dict[str, Any]] = [
         "beds": 3,
         "baths": 2.0,
         "sqft": 1750,
-        "hero_image_url": "https://placehold.co/800x480/2c5282/white?text=Live+Oak",
-        "gallery_urls": [],
+        "hero_image_url": _listing_img("1600596542815-ffad4c1539a9"),
+        "gallery_urls": [
+            _listing_img("1605276374104-dee2a0ed3cd6"),
+            _listing_img("1616594039964-ae9021a400a0"),
+            _listing_img("1568605114967-8130f3a36994"),
+            _listing_img("1600585154340-be6161a56a0c"),
+        ],
         "summary": "Single story, mature trees, efficient layout.",
         "match_score": 0.88,
         "community": "Sunset Valley",
@@ -65,11 +82,149 @@ FIXTURE_HOMES: list[dict[str, Any]] = [
         "beds": 5,
         "baths": 3.0,
         "sqft": 2680,
-        "hero_image_url": "https://placehold.co/800x480/276749/white?text=Vista+Ridge",
-        "gallery_urls": [],
+        "hero_image_url": _listing_img("1512917774080-9991f1c4c750"),
+        "gallery_urls": [
+            _listing_img("1613490493576-7fde63acd811"),
+            _listing_img("1600585154526-990dced4db0d"),
+            _listing_img("1600047509807-ba8f99d2cdde"),
+            _listing_img("1568605114967-8130f3a36994"),
+        ],
         "summary": "Two-story, flex room, near top-rated schools.",
         "match_score": 0.81,
         "community": "Teravista",
+    },
+    {
+        "id": "home-004",
+        "mls_id": "MLS-10004",
+        "address": {"line1": "2210 Brushy Creek Trl", "city": "Cedar Park", "state": "TX", "zip": "78613"},
+        "price_cents": 429_000_00,
+        "beds": 3,
+        "baths": 2.0,
+        "sqft": 1820,
+        "hero_image_url": _listing_img("1570129477492-45c003edd2be"),
+        "gallery_urls": [
+            _listing_img("1600585154340-be6161a56a0c"),
+            _listing_img("1605276374104-dee2a0ed3cd6"),
+            _listing_img("1616594039964-ae9021a400a0"),
+            _listing_img("1600210492486-724fe5c67fb0"),
+        ],
+        "summary": "Craftsman elevation, open living, community pool and trails nearby.",
+        "match_score": 0.79,
+        "community": "Brushy Creek",
+    },
+    {
+        "id": "home-005",
+        "mls_id": "MLS-10005",
+        "address": {"line1": "904 Pecan St", "city": "Georgetown", "state": "TX", "zip": "78626"},
+        "price_cents": 395_000_00,
+        "beds": 3,
+        "baths": 2.0,
+        "sqft": 1680,
+        "hero_image_url": _listing_img("1582268611958-ebfd161ef9cf"),
+        "gallery_urls": [
+            _listing_img("1600585154340-be6161a56a0c"),
+            _listing_img("1605276374104-dee2a0ed3cd6"),
+            _listing_img("1615529328331-f8917597711f"),
+            _listing_img("1600566753086-00f18fb6b3ea"),
+        ],
+        "summary": "Traditional brick, shaded backyard, short drive to historic square.",
+        "match_score": 0.77,
+        "community": "Old Town",
+    },
+    {
+        "id": "home-006",
+        "mls_id": "MLS-10006",
+        "address": {"line1": "55 Hill Country Vw", "city": "Dripping Springs", "state": "TX", "zip": "78620"},
+        "price_cents": 715_000_00,
+        "beds": 4,
+        "baths": 3.5,
+        "sqft": 3020,
+        "hero_image_url": _listing_img("1600047509807-ba8f99d2cdde"),
+        "gallery_urls": [
+            _listing_img("1613490493576-7fde63acd811"),
+            _listing_img("1564013799919-ab600027ffc6"),
+            _listing_img("1600607687939-ce8a6c25118c"),
+            _listing_img("1512917774080-9991f1c4c750"),
+        ],
+        "summary": "Contemporary design, wall of windows, acre lot with Hill Country views.",
+        "match_score": 0.84,
+        "community": "Belterra",
+    },
+    {
+        "id": "home-007",
+        "mls_id": "MLS-10007",
+        "address": {"line1": "1802 Falcon Pointe Blvd", "city": "Pflugerville", "state": "TX", "zip": "78660"},
+        "price_cents": 512_000_00,
+        "beds": 4,
+        "baths": 2.5,
+        "sqft": 2280,
+        "hero_image_url": _listing_img("1600585154526-990dced4db0d"),
+        "gallery_urls": [
+            _listing_img("1613490493576-7fde63acd811"),
+            _listing_img("1564013799919-ab600027ffc6"),
+            _listing_img("1600596542815-ffad4c1539a9"),
+            _listing_img("1512917774080-9991f1c4c750"),
+        ],
+        "summary": "Modern kitchen, game room, corner homesite near schools and parks.",
+        "match_score": 0.8,
+        "community": "Falcon Pointe",
+    },
+    {
+        "id": "home-008",
+        "mls_id": "MLS-10008",
+        "address": {"line1": "312 Elm Creek Dr", "city": "Buda", "state": "TX", "zip": "78610"},
+        "price_cents": 465_000_00,
+        "beds": 3,
+        "baths": 2.5,
+        "sqft": 2010,
+        "hero_image_url": _listing_img("1600566753086-00f18fb6b3ea"),
+        "gallery_urls": [
+            _listing_img("1600607687939-ce8a6c25118c"),
+            _listing_img("1582268611958-ebfd161ef9cf"),
+            _listing_img("1615529328331-f8917597711f"),
+            _listing_img("1616594039964-ae9021a400a0"),
+        ],
+        "summary": "Modern farmhouse plan, covered patio, energy-efficient HVAC.",
+        "match_score": 0.83,
+        "community": "Elm Creek",
+    },
+    {
+        "id": "home-009",
+        "mls_id": "MLS-10009",
+        "address": {"line1": "770 Sailmaster Dr", "city": "Lakeway", "state": "TX", "zip": "78734"},
+        "price_cents": 899_000_00,
+        "beds": 4,
+        "baths": 3.5,
+        "sqft": 3150,
+        "hero_image_url": _listing_img("1564013799919-ab600027ffc6"),
+        "gallery_urls": [
+            _listing_img("1613490493576-7fde63acd811"),
+            _listing_img("1600047509807-ba8f99d2cdde"),
+            _listing_img("1568605114967-8130f3a36994"),
+            _listing_img("1600566753086-00f18fb6b3ea"),
+        ],
+        "summary": "Lake lifestyle community, contemporary finishes, resort-style amenities.",
+        "match_score": 0.76,
+        "community": "Rough Hollow",
+    },
+    {
+        "id": "home-010",
+        "mls_id": "MLS-10010",
+        "address": {"line1": "140 Bluebonnet Way", "city": "Manor", "state": "TX", "zip": "78653"},
+        "price_cents": 338_000_00,
+        "beds": 3,
+        "baths": 2.0,
+        "sqft": 1540,
+        "hero_image_url": _listing_img("1568605114967-8130f3a36994"),
+        "gallery_urls": [
+            _listing_img("1600585154340-be6161a56a0c"),
+            _listing_img("1615529328331-f8917597711f"),
+            _listing_img("1600210492486-724fe5c67fb0"),
+            _listing_img("1564013799919-ab600027ffc6"),
+        ],
+        "summary": "New construction, smart thermostat prewire, commuter-friendly to Austin.",
+        "match_score": 0.74,
+        "community": "Shadowglen",
     },
 ]
 
@@ -85,6 +240,27 @@ CUSTOMIZATION_OPTIONS: dict[str, list[dict[str, Any]]] = {
     "home-003": [
         {"id": "opt-loft", "category": "layout", "label": "Loft conversion", "price_delta_cents": 22_000_00},
     ],
+    "home-004": [
+        {"id": "opt-craftsman-trim", "category": "exterior", "label": "Premium craftsman trim package", "price_delta_cents": 6_500_00},
+    ],
+    "home-005": [
+        {"id": "opt-fence", "category": "outdoor", "label": "Privacy cedar fence", "price_delta_cents": 7_200_00},
+    ],
+    "home-006": [
+        {"id": "opt-outdoor-kitchen", "category": "outdoor", "label": "Outdoor kitchen & fire pit", "price_delta_cents": 28_000_00},
+    ],
+    "home-007": [
+        {"id": "opt-media", "category": "layout", "label": "Pre-wired media room", "price_delta_cents": 4_800_00},
+    ],
+    "home-008": [
+        {"id": "opt-farmhouse-sink", "category": "kitchen", "label": "Farmhouse sink & faucet upgrade", "price_delta_cents": 3_200_00},
+    ],
+    "home-009": [
+        {"id": "opt-boat-slip", "category": "lifestyle", "label": "Boat slip access add-on", "price_delta_cents": 35_000_00},
+    ],
+    "home-010": [
+        {"id": "opt-solar-prep", "category": "energy", "label": "Solar panel prep package", "price_delta_cents": 5_500_00},
+    ],
 }
 
 # In-memory session state
@@ -95,6 +271,79 @@ _favorites: dict[str, set[str]] = {}  # user_id -> set of home ids
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _coerce_number(v: Any) -> float | None:
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v)
+    if isinstance(v, str) and v.strip():
+        try:
+            return float(v)
+        except ValueError:
+            return None
+    return None
+
+
+def _score_home_with_questionnaire(home: dict[str, Any], q: dict[str, Any]) -> float:
+    """Align with frontend src/lib/matchScore.ts scoreHomeWithQuestionnaire."""
+    score = 0.32
+    budget_max = _coerce_number(q.get("budgetMax")) or 2_000_000.0
+    budget_cents = int(budget_max * 100)
+    price = int(home.get("price_cents", 0))
+    if price <= budget_cents:
+        score += 0.26
+    else:
+        score += 0.26 * min(1.0, budget_cents / max(price, 1))
+
+    min_beds = int(_coerce_number(q.get("minBeds")) or 1)
+    min_baths = _coerce_number(q.get("minBaths")) or 1.0
+    min_sqft = int(_coerce_number(q.get("minSqft")) or 0)
+    beds = int(home.get("beds", 0))
+    baths = float(home.get("baths", 0))
+    sqft = int(home.get("sqft", 0))
+
+    if beds >= min_beds:
+        score += 0.14
+    else:
+        score += 0.14 * max(0.0, beds / max(min_beds, 1))
+
+    if baths >= min_baths:
+        score += 0.12
+    else:
+        score += 0.12 * max(0.0, baths / max(min_baths, 0.25))
+
+    if min_sqft > 0:
+        if sqft >= min_sqft:
+            score += 0.12
+        else:
+            score += 0.12 * max(0.0, sqft / max(min_sqft, 1))
+    else:
+        score += 0.12
+
+    if q.get("singleStory") is True:
+        summary = str(home.get("summary", ""))
+        if re.search(r"single[\s-]?story", summary, re.IGNORECASE):
+            score += 0.1
+        elif sqft < 2100 and beds <= 3:
+            score += 0.04
+
+    styles = q.get("styles")
+    if isinstance(styles, list):
+        hay = f"{home.get('summary', '')} {home.get('community', '')}".lower()
+        for s in styles:
+            if isinstance(s, str) and s:
+                word = s.lower().split()[0]
+                if len(word) > 2 and word in hay:
+                    score += 0.025
+
+    cities = str(q.get("preferredCities") or "").lower()
+    if cities:
+        city = str(home.get("address", {}).get("city", "")).lower()
+        if city and city in cities:
+            score += 0.06
+
+    out = min(0.99, max(0.28, score))
+    return round(out, 3)
 
 
 def _require_session(authorization: str | None) -> tuple[str, dict[str, Any]]:
@@ -201,12 +450,26 @@ class MatchingRunRequest(BaseModel):
 
 @app.post("/api/matching/run")
 def run_matching(body: MatchingRunRequest, authorization: str | None = Header(default=None)) -> dict[str, Any]:
-    _require_session(authorization)
-    ranked = sorted(FIXTURE_HOMES, key=lambda h: h.get("match_score", 0), reverse=True)
+    _, sess = _require_session(authorization)
+    user_id = sess["user_id"]
+    rec = _buyer_profiles.get(user_id, {})
+    qn = rec.get("questionnaire") or {}
+    completed = bool(qn.get("completed"))
+    answers = qn.get("answers") or {}
+    use_q = body.use_questionnaire and completed
+
+    homes = deepcopy(FIXTURE_HOMES)
+    if use_q and isinstance(answers, dict):
+        for h in homes:
+            h["match_score"] = _score_home_with_questionnaire(h, answers)
+        homes.sort(key=lambda h: h.get("match_score", 0), reverse=True)
+    else:
+        homes.sort(key=lambda h: h.get("match_score", 0), reverse=True)
+
     return {
         "generated_at": _utc_now(),
-        "homes": deepcopy(ranked),
-        "used_questionnaire": body.use_questionnaire,
+        "homes": homes,
+        "used_questionnaire": bool(use_q),
     }
 
 

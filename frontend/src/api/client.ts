@@ -4,6 +4,40 @@ const baseUrl = () => import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:800
 
 const TOKEN_KEY = 'clayton_homes_session'
 
+/** Session mirror for /auth/me; must match AuthContext. */
+export const AUTH_ME_CACHE_KEY = 'clayton_homes_auth_me'
+
+export class ApiError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+function parseErrorMessage(text: string, status: number): string {
+  const trimmed = text.trim()
+  if (!trimmed) return `${status} ${status === 401 ? 'Unauthorized' : 'Request failed'}`
+  try {
+    const j = JSON.parse(trimmed) as { detail?: unknown }
+    if (typeof j.detail === 'string') return j.detail
+  } catch {
+    /* not JSON */
+  }
+  return trimmed
+}
+
+export function clearStoredAuth(): void {
+  localStorage.removeItem(TOKEN_KEY)
+  try {
+    sessionStorage.removeItem(AUTH_ME_CACHE_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -25,7 +59,7 @@ export async function api<T>(
     headers.set('Content-Type', 'application/json')
   }
   const token = getStoredToken()
-  if (token) {
+  if (token && path !== '/auth/login') {
     headers.set('Authorization', `Bearer ${token}`)
   }
   const { json, ...rest } = init
@@ -36,7 +70,12 @@ export async function api<T>(
   })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || `${res.status} ${res.statusText}`)
+    const message = parseErrorMessage(text, res.status)
+    if (res.status === 401 && path !== '/auth/login' && getStoredToken()) {
+      clearStoredAuth()
+      window.dispatchEvent(new Event('clayton-auth-expired'))
+    }
+    throw new ApiError(res.status, message)
   }
   if (res.status === 204) {
     return undefined as T

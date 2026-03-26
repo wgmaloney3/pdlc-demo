@@ -1,25 +1,25 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --radius-lg: 0.5rem;
+  --font-sans: 'DM Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --radius-lg: 0.75rem;
   --radius-md: calc(var(--radius-lg) - 2px);
   --radius-sm: calc(var(--radius-lg) - 4px);
 
-  /* Clayton-inspired neutrals + deep blue primary */
-  --color-background: #fafaf9;
-  --color-foreground: #1c1917;
+  --color-background: #f7f6f3;
+  --color-foreground: #1a1814;
   --color-card: #ffffff;
-  --color-card-foreground: #1c1917;
-  --color-muted: #f5f5f4;
-  --color-muted-foreground: #57534e;
-  --color-border: #e7e5e4;
-  --color-input: #e7e5e4;
+  --color-card-foreground: #1a1814;
+  --color-muted: #f0eeea;
+  --color-muted-foreground: #5c5850;
+  --color-border: #e4e1db;
+  --color-input: #dcd8d0;
   --color-primary: #1e3a5f;
   --color-primary-foreground: #fafaf9;
-  --color-secondary: #e7e5e4;
-  --color-secondary-foreground: #1c1917;
-  --color-accent: #f0fdfa;
+  --color-secondary: #ebe8e3;
+  --color-secondary-foreground: #1a1814;
+  --color-accent: #e8f4f1;
   --color-accent-foreground: #0f172a;
   --color-destructive: #b91c1c;
   --color-ring: #1e3a5f;
@@ -31,8 +31,16 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    background-image: linear-gradient(180deg, #faf9f7 0%, #f4f2ee 55%, #f0ede8 100%);
+    background-attachment: fixed;
   }
   #root {
     @apply min-h-svh w-full max-w-none border-0 text-left;
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
   }
 }

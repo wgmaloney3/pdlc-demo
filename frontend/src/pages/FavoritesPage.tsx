@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 
 import { compareHomes } from '@/api/client'
 import { EmptyState } from '@/components/common/EmptyState'
+import { PageHeader } from '@/components/common/PageHeader'
 import { HomeCard } from '@/components/homes/HomeCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { formatUsdFromCents } from '@/lib/utils'
 
@@ -39,46 +41,62 @@ export default function FavoritesPage() {
   }, [selected])
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading favorites…</p>
+    return (
+      <div className="space-y-10">
+        <div className="space-y-3 border-b border-border/60 pb-8">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <Skeleton className="h-48 rounded-xl" />
+      </div>
+    )
   }
 
   if (!favorites.length) {
     return (
-      <EmptyState
-        title="No favorites yet"
-        description="Save homes from results or detail pages to compare them here."
-      >
-        <Button asChild>
-          <Link to="/homes">Browse homes</Link>
-        </Button>
-      </EmptyState>
+      <div className="space-y-10">
+        <PageHeader
+          eyebrow="Saved homes"
+          title="Favorites"
+          description="Keep track of plans you love and compare them side by side."
+        />
+        <EmptyState
+          title="No favorites yet"
+          description="Tap the heart on any home to save it here. You can compare up to three homes at once."
+        >
+          <Button asChild className="rounded-full px-8">
+            <Link to="/homes">Browse homes</Link>
+          </Button>
+        </EmptyState>
+      </div>
     )
   }
 
   const attrs = ['community', 'price', 'beds', 'baths', 'sqft', 'match'] as const
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Favorites</h1>
-          <p className="text-sm text-muted-foreground">
-            Select up to {COMPARE_MAX} homes to compare side by side.
-          </p>
-        </div>
-        <Button
-          type="button"
-          disabled={selected.length < 2 || compareLoading}
-          onClick={() => runCompare()}
-        >
-          {compareLoading ? 'Loading…' : 'Compare selected'}
-        </Button>
-      </div>
+    <div className="space-y-10">
+      <PageHeader
+        eyebrow="Saved homes"
+        title="Favorites"
+        description={`Select up to ${COMPARE_MAX} homes to compare price, size, and match scores.`}
+        actions={
+          <Button
+            type="button"
+            className="rounded-full"
+            disabled={selected.length < 2 || compareLoading}
+            onClick={() => runCompare()}
+          >
+            {compareLoading ? 'Loading…' : 'Compare selected'}
+          </Button>
+        }
+      />
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {favorites.map((h) => (
-          <div key={h.id} className="flex gap-3">
-            <div className="flex items-start pt-4">
+          <div key={h.id} className="flex gap-4">
+            <div className="flex items-start pt-5 sm:pt-6">
               <Checkbox
                 id={`cmp-${h.id}`}
                 checked={selected.includes(h.id)}
@@ -95,18 +113,18 @@ export default function FavoritesPage() {
       </div>
 
       {compareRows.length >= 2 ? (
-        <Card className="overflow-x-auto">
+        <Card className="overflow-x-auto border-border/70 shadow-md shadow-black/[0.04]">
           <CardHeader>
-            <CardTitle className="text-base">Comparison</CardTitle>
+            <CardTitle className="font-display text-xl">Side-by-side comparison</CardTitle>
           </CardHeader>
           <CardContent>
             <table className="w-full min-w-[32rem] border-collapse text-sm">
               <thead>
-                <tr className="border-b text-left">
-                  <th className="py-2 pr-4 font-medium">Attribute</th>
+                <tr className="border-b border-border/80 text-left">
+                  <th className="py-3 pr-4 font-semibold text-foreground">Attribute</th>
                   {compareRows.map((h) => (
-                    <th key={h.id} className="py-2 pr-4 font-normal">
-                      <Link to={`/homes/${h.id}`} className="text-primary hover:underline">
+                    <th key={h.id} className="py-3 pr-4 font-normal">
+                      <Link to={`/homes/${h.id}`} className="font-medium text-primary underline-offset-4 hover:underline">
                         {h.address.line1}
                       </Link>
                     </th>
@@ -115,10 +133,10 @@ export default function FavoritesPage() {
               </thead>
               <tbody>
                 {attrs.map((attr) => (
-                  <tr key={attr} className="border-b last:border-0">
-                    <td className="py-2 pr-4 capitalize text-muted-foreground">{attr}</td>
+                  <tr key={attr} className="border-b border-border/50 last:border-0">
+                    <td className="py-3 pr-4 font-medium capitalize text-muted-foreground">{attr}</td>
                     {compareRows.map((h) => (
-                      <td key={h.id + attr} className="py-2 pr-4">
+                      <td key={h.id + attr} className="py-3 pr-4 text-foreground">
                         {attr === 'price'
                           ? formatUsdFromCents(h.price_cents)
                           : attr === 'beds'

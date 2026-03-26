@@ -1,17 +1,23 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { SearchIcon } from 'lucide-react'
 import * as React from 'react'
 import { Controller, useForm, type Resolver } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { z } from 'zod'
 
 import { fetchBuyerProfile, updateBuyerProfile } from '@/api/client'
+import { PageHeader } from '@/components/common/PageHeader'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { formatUsdFromCents } from '@/lib/utils'
 
 const STYLE_OPTIONS = ['Modern farmhouse', 'Traditional', 'Craftsman', 'Contemporary'] as const
 
@@ -65,12 +71,65 @@ function answersFromProfile(raw: Record<string, unknown> | undefined): Partial<Q
   return out
 }
 
+function QuestionnaireSummaryFields({ values }: { values: QuestionnaireValues }) {
+  return (
+    <dl className="grid gap-4 rounded-xl border border-border/60 bg-muted/30 p-4 sm:grid-cols-2">
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Max budget</dt>
+        <dd className="mt-1 font-medium text-foreground">{formatUsdFromCents(Math.round(values.budgetMax * 100))}</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Areas</dt>
+        <dd className="mt-1 font-medium text-foreground">{values.preferredCities}</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bedrooms</dt>
+        <dd className="mt-1 font-medium text-foreground">{values.minBeds}+</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bathrooms</dt>
+        <dd className="mt-1 font-medium text-foreground">{values.minBaths}+</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Min sq ft</dt>
+        <dd className="mt-1 font-medium text-foreground">{values.minSqft.toLocaleString()}+</dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Single-story</dt>
+        <dd className="mt-1 font-medium text-foreground">{values.singleStory ? 'Yes' : 'No preference'}</dd>
+      </div>
+      <div className="sm:col-span-2">
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Styles</dt>
+        <dd className="mt-1 font-medium text-foreground">{values.styles.join(', ')}</dd>
+      </div>
+      {values.accessibilityNotes.trim() ? (
+        <div className="sm:col-span-2">
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</dt>
+          <dd className="mt-1 text-foreground">{values.accessibilityNotes}</dd>
+        </div>
+      ) : null}
+    </dl>
+  )
+}
+
+function formatSavedAt(iso: string | null): string | null {
+  if (!iso) return null
+  try {
+    return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  } catch {
+    return null
+  }
+}
+
 export default function QuestionnairePage() {
   const { user } = useAuth()
   const [step, setStep] = React.useState(0)
   const [loadingProfile, setLoadingProfile] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
   const [doneMsg, setDoneMsg] = React.useState<string | null>(null)
+  const [profileSavedCompleted, setProfileSavedCompleted] = React.useState(false)
+  const [showWizard, setShowWizard] = React.useState(true)
+  const [profileUpdatedAt, setProfileUpdatedAt] = React.useState<string | null>(null)
 
   const form = useForm<QuestionnaireValues>({
     resolver: zodResolver(qSchema) as Resolver<QuestionnaireValues>,
@@ -86,9 +145,19 @@ export default function QuestionnairePage() {
         if (cancelled) return
         const prev = answersFromProfile(p.questionnaire.answers as Record<string, unknown>)
         form.reset({ ...defaults, ...prev })
+        const completed = Boolean(p.questionnaire.completed)
+        setProfileSavedCompleted(completed)
+        setShowWizard(!completed)
+        setProfileUpdatedAt(p.updated_at ?? null)
+        setDoneMsg(null)
       })
       .catch(() => {
-        if (!cancelled) form.reset(defaults)
+        if (!cancelled) {
+          form.reset(defaults)
+          setProfileSavedCompleted(false)
+          setShowWizard(true)
+          setProfileUpdatedAt(null)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingProfile(false)
@@ -108,6 +177,12 @@ export default function QuestionnairePage() {
 
   const back = () => setStep((s) => Math.max(0, s - 1))
 
+  const beginChangeSearch = () => {
+    setShowWizard(true)
+    setStep(0)
+    setDoneMsg(null)
+  }
+
   const onSubmit = form.handleSubmit(async (data) => {
     setSubmitting(true)
     setDoneMsg(null)
@@ -116,6 +191,12 @@ export default function QuestionnairePage() {
         answers: data as unknown as Record<string, unknown>,
         mark_completed: true,
       })
+      const p = await fetchBuyerProfile()
+      const prev = answersFromProfile(p.questionnaire.answers as Record<string, unknown>)
+      form.reset({ ...defaults, ...prev })
+      setProfileSavedCompleted(Boolean(p.questionnaire.completed))
+      setProfileUpdatedAt(p.updated_at ?? null)
+      setShowWizard(false)
       setDoneMsg('Your preferences have been saved.')
     } finally {
       setSubmitting(false)
@@ -124,27 +205,89 @@ export default function QuestionnairePage() {
 
   const values = form.watch()
   const progress = ((step + 1) / STEPS.length) * 100
+  const savedAtLabel = formatSavedAt(profileUpdatedAt)
+  const showSummaryOnly = profileSavedCompleted && !showWizard
 
   if (loadingProfile) {
-    return <p className="text-muted-foreground">Loading your profile…</p>
+    return (
+      <div className="mx-auto max-w-xl space-y-8">
+        <div className="space-y-3 border-b border-border/60 pb-8">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    )
+  }
+
+  if (showSummaryOnly) {
+    return (
+      <div className="mx-auto max-w-xl space-y-8">
+        <PageHeader
+          eyebrow="Saved preferences"
+          title="Your home search"
+          description={
+            savedAtLabel
+              ? `Here is what we are using to rank and filter homes. Last updated ${savedAtLabel}.`
+              : 'Here is what we are using to rank and filter homes.'
+          }
+        />
+
+        <Card className="border-border/70 border-primary/20 shadow-md shadow-black/[0.04]">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <Badge variant="secondary" className="w-fit rounded-full">
+                Active search profile
+              </Badge>
+              <CardTitle className="font-display text-xl">Current selections</CardTitle>
+              <CardDescription>
+                Go to Homes to see listings matched to these answers, or change your search below.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <QuestionnaireSummaryFields values={values} />
+            {doneMsg ? (
+              <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 font-medium text-primary" role="status">
+                {doneMsg}
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button type="button" className="rounded-full" onClick={beginChangeSearch}>
+                <SearchIcon className="h-4 w-4" aria-hidden />
+                Change my search
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/homes">Browse matching homes</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Buyer questionnaire</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Step {step + 1} of {STEPS.length}: {STEPS[step]}
-        </p>
-        <ProgressBar value={progress} className="mt-3" />
-      </div>
+    <div className="mx-auto max-w-xl space-y-8">
+      <PageHeader
+        eyebrow={`Step ${step + 1} of ${STEPS.length}`}
+        title={profileSavedCompleted ? 'Update your search' : 'Buyer questionnaire'}
+        description={
+          profileSavedCompleted
+            ? `${STEPS[step]} — adjust any answers, then save to refresh your matches.`
+            : `${STEPS[step]} — we use your answers to rank homes and tailor recommendations.`
+        }
+      />
+      <ProgressBar value={progress} className="-mt-2" />
 
-      <Card>
+      <Card className="border-border/70 shadow-md shadow-black/[0.04]">
         <CardHeader>
-          <CardTitle>{STEPS[step]}</CardTitle>
-          <CardDescription>We use your answers to refine which homes we show you.</CardDescription>
+          <CardTitle className="font-display text-xl">{STEPS[step]}</CardTitle>
+          <CardDescription>Your information is used to improve your home matches and recommendations.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           {step === 0 && (
             <>
               <div className="space-y-2">
@@ -224,7 +367,10 @@ export default function QuestionnairePage() {
                     {STYLE_OPTIONS.map((s) => {
                       const checked = field.value.includes(s)
                       return (
-                        <li key={s} className="flex items-center gap-2">
+                        <li
+                          key={s}
+                          className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 transition-colors hover:bg-muted/50"
+                        >
                           <Checkbox
                             id={`style-${s}`}
                             checked={checked}
@@ -233,7 +379,7 @@ export default function QuestionnairePage() {
                               else field.onChange(field.value.filter((x) => x !== s))
                             }}
                           />
-                          <Label htmlFor={`style-${s}`} className="font-normal">
+                          <Label htmlFor={`style-${s}`} className="flex-1 cursor-pointer font-normal">
                             {s}
                           </Label>
                         </li>
@@ -249,31 +395,34 @@ export default function QuestionnairePage() {
           )}
 
           {step === 4 && (
-            <div className="space-y-2 text-sm">
-              <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs leading-relaxed">
-                {JSON.stringify(values, null, 2)}
-              </pre>
-              {doneMsg ? (
-                <p className="text-primary font-medium" role="status">
-                  {doneMsg}
-                </p>
-              ) : null}
+            <div className="space-y-5 text-sm">
+              <p className="text-muted-foreground">
+                Review your answers. You can edit any section with <strong>Back</strong>.
+              </p>
+              <QuestionnaireSummaryFields values={values} />
             </div>
           )}
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-            <Button type="button" variant="outline" onClick={back} disabled={step === 0}>
+          <div className="flex flex-col gap-3 border-t border-border/60 pt-6 sm:flex-row sm:justify-between">
+            <Button type="button" variant="outline" className="rounded-full" onClick={back} disabled={step === 0}>
               Back
             </Button>
-            {step < STEPS.length - 1 ? (
-              <Button type="button" onClick={() => void next()}>
-                Next
-              </Button>
-            ) : (
-              <Button type="button" disabled={submitting} onClick={() => void onSubmit()}>
-                {submitting ? 'Saving…' : 'Save profile'}
-              </Button>
-            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              {profileSavedCompleted ? (
+                <Button type="button" variant="ghost" className="rounded-full sm:order-first" onClick={() => setShowWizard(false)}>
+                  Cancel
+                </Button>
+              ) : null}
+              {step < STEPS.length - 1 ? (
+                <Button type="button" className="rounded-full" onClick={() => void next()}>
+                  Next
+                </Button>
+              ) : (
+                <Button type="button" className="rounded-full" disabled={submitting} onClick={() => void onSubmit()}>
+                  {submitting ? 'Saving…' : 'Save profile'}
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

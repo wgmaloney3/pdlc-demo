@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
+import { applyQuestionnaireToHomes } from '@/lib/matchScore'
+
 import { CUSTOMIZATION_OPTIONS } from './fixtures'
 import {
   buyerProfiles,
@@ -111,11 +113,20 @@ export const handlers = [
     const sessOr = requireSession(request)
     if (sessOr instanceof HttpResponse) return sessOr
     const body = (await request.json().catch(() => ({}))) as { use_questionnaire?: boolean }
-    const ranked = cloneHomes().sort((a, b) => b.match_score - a.match_score)
+    const useQ = body.use_questionnaire !== false
+    const rec = buyerProfiles.get(sessOr.user_id)
+    const completed = Boolean(rec?.questionnaire?.completed)
+    const answers = rec?.questionnaire?.answers ?? {}
+    let homes = cloneHomes()
+    if (useQ && completed && rec) {
+      homes = applyQuestionnaireToHomes(homes, answers)
+    } else {
+      homes = [...homes].sort((a, b) => b.match_score - a.match_score)
+    }
     return HttpResponse.json({
       generated_at: utcNow(),
-      homes: ranked,
-      used_questionnaire: body.use_questionnaire !== false,
+      homes,
+      used_questionnaire: useQ && completed,
     })
   }),
 

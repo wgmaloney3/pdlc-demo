@@ -42,9 +42,9 @@ export default function App() {
             </Suspense>
           }
         />
+        <Route path="/" element={<Navigate to="/questionnaire" replace />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route index element={<Navigate to="/homes" replace />} />
             <Route
               path="homes"
               element={
@@ -87,7 +87,7 @@ export default function App() {
             />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/homes" replace />} />
+        <Route path="*" element={<Navigate to="/questionnaire" replace />} />
       </Routes>
     </Suspense>
   )

@@ -18,7 +18,7 @@ export function FavoriteButton({ homeId, className }: Props) {
       type="button"
       variant={on ? 'default' : 'outline'}
       size="icon"
-      className={cn('shrink-0 touch-manipulation', className)}
+      className={cn('shrink-0 rounded-full touch-manipulation', className)}
       aria-pressed={on}
       aria-label={on ? 'Remove from favorites' : 'Save to favorites'}
       onClick={() => {
