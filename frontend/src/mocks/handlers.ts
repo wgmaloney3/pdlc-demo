@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 
 import { applyQuestionnaireToHomes } from '@/lib/matchScore'
 
-import { CUSTOMIZATION_OPTIONS } from './fixtures'
+import { CUSTOMIZATION_OPTIONS, NEARBY_SCHOOLS_BY_HOME } from './fixtures'
 import {
   buyerProfiles,
   cloneHomes,
@@ -193,7 +193,7 @@ export const handlers = [
       ...structuredClone(h),
       description_long:
         'Spacious layout with natural light, an open kitchen and dining area, and a private outdoor space ideal for entertaining. Energy-efficient windows and quality finishes throughout.',
-      schools: [{ name: 'Lakewood High School', rating: 8 }],
+      schools: NEARBY_SCHOOLS_BY_HOME[hid] ?? [],
     }
     return HttpResponse.json(detail)
   }),

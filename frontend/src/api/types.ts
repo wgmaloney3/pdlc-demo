@@ -19,7 +19,7 @@ export type Home = {
   match_score: number
   community: string
   description_long?: string
-  schools?: { name: string; rating: number }[]
+  schools?: { name: string; rating: number; level?: 'elementary' | 'middle' | 'high' }[]
 }
 
 export type AuthMe = {

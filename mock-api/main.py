@@ -228,6 +228,70 @@ FIXTURE_HOMES: list[dict[str, Any]] = [
     },
 ]
 
+# Mock feeder schools per listing (aligned with frontend src/mocks/fixtures.ts).
+NEARBY_SCHOOLS_BY_HOME: dict[str, list[dict[str, Any]]] = {
+    "home-001": [
+        {"name": "Olmsted Creek Elementary", "rating": 8, "level": "elementary"},
+        {"name": "South Lamar STEM Elementary", "rating": 9, "level": "elementary"},
+        {"name": "Barton Springs Middle", "rating": 7, "level": "middle"},
+        {"name": "Riverside Early College High", "rating": 8, "level": "high"},
+    ],
+    "home-002": [
+        {"name": "Live Oak Primary", "rating": 7, "level": "elementary"},
+        {"name": "Garrison Park Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Pioneer Trail Middle", "rating": 7, "level": "middle"},
+        {"name": "Capitol View High", "rating": 8, "level": "high"},
+    ],
+    "home-003": [
+        {"name": "Vista Ridge Elementary", "rating": 9, "level": "elementary"},
+        {"name": "Canyon Creek Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Walsh Middle", "rating": 8, "level": "middle"},
+        {"name": "Round Rock Summit High", "rating": 9, "level": "high"},
+    ],
+    "home-004": [
+        {"name": "Brushy Creek Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Forest North Elementary", "rating": 7, "level": "elementary"},
+        {"name": "Cedar Park Middle", "rating": 8, "level": "middle"},
+        {"name": "Cypress Ridge High", "rating": 8, "level": "high"},
+    ],
+    "home-005": [
+        {"name": "San Gabriel Elementary", "rating": 7, "level": "elementary"},
+        {"name": "Pecan Grove Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Georgetown Gateway Middle", "rating": 7, "level": "middle"},
+        {"name": "San Marcos River High", "rating": 8, "level": "high"},
+    ],
+    "home-006": [
+        {"name": "Hill Country Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Belterra Oaks Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Dripping Springs Middle", "rating": 8, "level": "middle"},
+        {"name": "Hill Country Collegiate High", "rating": 9, "level": "high"},
+    ],
+    "home-007": [
+        {"name": "Falcon Pointe Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Brookhollow Elementary", "rating": 7, "level": "elementary"},
+        {"name": "Park Crest Middle", "rating": 7, "level": "middle"},
+        {"name": "Pflugerville Heights High", "rating": 8, "level": "high"},
+    ],
+    "home-008": [
+        {"name": "Elm Creek Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Onion Creek Elementary", "rating": 7, "level": "elementary"},
+        {"name": "Buda Mill Middle", "rating": 8, "level": "middle"},
+        {"name": "Hays Trail High", "rating": 8, "level": "high"},
+    ],
+    "home-009": [
+        {"name": "Rough Hollow Elementary", "rating": 9, "level": "elementary"},
+        {"name": "Serene Hills Elementary", "rating": 8, "level": "elementary"},
+        {"name": "Lake Travis Middle", "rating": 8, "level": "middle"},
+        {"name": "Lake Travis North High", "rating": 9, "level": "high"},
+    ],
+    "home-010": [
+        {"name": "Bluebonnet Elementary", "rating": 7, "level": "elementary"},
+        {"name": "Manor Lakes Elementary", "rating": 6, "level": "elementary"},
+        {"name": "Manor New Tech Middle", "rating": 7, "level": "middle"},
+        {"name": "Manor Express High", "rating": 7, "level": "high"},
+    ],
+}
+
 CUSTOMIZATION_OPTIONS: dict[str, list[dict[str, Any]]] = {
     "home-001": [
         {"id": "opt-flooring-oak", "category": "flooring", "label": "Wide-plank oak upgrade", "price_delta_cents": 12_000_00},
@@ -498,7 +562,7 @@ def get_home(home_id: str, authorization: str | None = Header(default=None)) -> 
                 "Spacious layout with natural light, an open kitchen and dining area, and a private "
                 "outdoor space ideal for entertaining. Energy-efficient windows and quality finishes throughout."
             )
-            detail["schools"] = [{"name": "Lakewood High School", "rating": 8}]
+            detail["schools"] = deepcopy(NEARBY_SCHOOLS_BY_HOME.get(home_id, []))
             return detail
     raise HTTPException(status_code=404, detail="Home not found")
 

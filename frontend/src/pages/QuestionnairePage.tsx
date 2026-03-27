@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { SearchIcon } from 'lucide-react'
 import * as React from 'react'
-import { Controller, useForm, type Resolver } from 'react-hook-form'
+import { Controller, useForm, type Resolver, type UseFormReturn } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
 
@@ -71,6 +71,161 @@ function answersFromProfile(raw: Record<string, unknown> | undefined): Partial<Q
   return out
 }
 
+function QBudgetFields({ form }: { form: UseFormReturn<QuestionnaireValues> }) {
+  const { register, formState } = form
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="budgetMax">Max budget (USD)</Label>
+        <Input id="budgetMax" type="number" {...register('budgetMax')} />
+        {formState.errors.budgetMax ? (
+          <p className="text-sm text-destructive">{formState.errors.budgetMax.message}</p>
+        ) : null}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="preferredCities">Preferred cities or areas</Label>
+        <Input id="preferredCities" {...register('preferredCities')} />
+        {formState.errors.preferredCities ? (
+          <p className="text-sm text-destructive">{formState.errors.preferredCities.message}</p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function QSizeFields({ form }: { form: UseFormReturn<QuestionnaireValues> }) {
+  const { register, formState } = form
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      <div className="space-y-2">
+        <Label htmlFor="minBeds">Minimum bedrooms</Label>
+        <Input id="minBeds" type="number" {...register('minBeds')} />
+        {formState.errors.minBeds ? (
+          <p className="text-sm text-destructive">{formState.errors.minBeds.message}</p>
+        ) : null}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="minBaths">Minimum bathrooms</Label>
+        <Input id="minBaths" type="number" step="0.5" {...register('minBaths')} />
+        {formState.errors.minBaths ? (
+          <p className="text-sm text-destructive">{formState.errors.minBaths.message}</p>
+        ) : null}
+      </div>
+      <div className="space-y-2 sm:col-span-3 md:col-span-1">
+        <Label htmlFor="minSqft">Minimum sq ft</Label>
+        <Input id="minSqft" type="number" {...register('minSqft')} />
+        {formState.errors.minSqft ? (
+          <p className="text-sm text-destructive">{formState.errors.minSqft.message}</p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function QAccessibilityFields({ form }: { form: UseFormReturn<QuestionnaireValues> }) {
+  const { register, control } = form
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <Controller
+          control={control}
+          name="singleStory"
+          render={({ field }) => (
+            <Checkbox
+              id="singleStory"
+              checked={field.value}
+              onCheckedChange={(c) => field.onChange(c === true)}
+            />
+          )}
+        />
+        <Label htmlFor="singleStory">Prefer single-story</Label>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="accessibilityNotes">Accessibility or mobility notes</Label>
+        <Textarea id="accessibilityNotes" {...register('accessibilityNotes')} />
+      </div>
+    </>
+  )
+}
+
+function QStyleFields({ form }: { form: UseFormReturn<QuestionnaireValues> }) {
+  const { control, formState } = form
+  return (
+    <div className="space-y-3">
+      <Controller
+        control={control}
+        name="styles"
+        render={({ field }) => (
+          <ul className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0">
+            {STYLE_OPTIONS.map((s) => {
+              const checked = field.value.includes(s)
+              return (
+                <li
+                  key={s}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 transition-colors hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`style-${s}`}
+                    checked={checked}
+                    onCheckedChange={(c) => {
+                      if (c === true) field.onChange([...field.value, s])
+                      else field.onChange(field.value.filter((x) => x !== s))
+                    }}
+                  />
+                  <Label htmlFor={`style-${s}`} className="flex-1 cursor-pointer font-normal">
+                    {s}
+                  </Label>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      />
+      {formState.errors.styles ? (
+        <p className="text-sm text-destructive">{formState.errors.styles.message}</p>
+      ) : null}
+    </div>
+  )
+}
+
+function QuestionnaireFieldsBody({ form }: { form: UseFormReturn<QuestionnaireValues> }) {
+  return (
+    <div className="space-y-10">
+      <section className="space-y-4">
+        <div>
+          <h3 className="font-display text-lg font-semibold text-foreground">Budget &amp; location</h3>
+          <p className="mt-1 text-sm text-muted-foreground">What you can spend and where you want to look.</p>
+        </div>
+        <QBudgetFields form={form} />
+      </section>
+
+      <section className="space-y-4 border-t border-border/60 pt-10">
+        <div>
+          <h3 className="font-display text-lg font-semibold text-foreground">Size</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Minimum beds, baths, and square footage.</p>
+        </div>
+        <QSizeFields form={form} />
+      </section>
+
+      <section className="space-y-4 border-t border-border/60 pt-10">
+        <div>
+          <h3 className="font-display text-lg font-semibold text-foreground">Accessibility</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Layout preferences and optional notes.</p>
+        </div>
+        <QAccessibilityFields form={form} />
+      </section>
+
+      <section className="space-y-4 border-t border-border/60 pt-10">
+        <div>
+          <h3 className="font-display text-lg font-semibold text-foreground">Style</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Select all styles you would consider.</p>
+        </div>
+        <QStyleFields form={form} />
+      </section>
+    </div>
+  )
+}
+
 function QuestionnaireSummaryFields({ values }: { values: QuestionnaireValues }) {
   return (
     <dl className="grid gap-4 rounded-xl border border-border/60 bg-muted/30 p-4 sm:grid-cols-2">
@@ -129,6 +284,7 @@ export default function QuestionnairePage() {
   const [doneMsg, setDoneMsg] = React.useState<string | null>(null)
   const [profileSavedCompleted, setProfileSavedCompleted] = React.useState(false)
   const [showWizard, setShowWizard] = React.useState(true)
+  const [singleScreenEdit, setSingleScreenEdit] = React.useState(false)
   const [profileUpdatedAt, setProfileUpdatedAt] = React.useState<string | null>(null)
 
   const form = useForm<QuestionnaireValues>({
@@ -148,6 +304,7 @@ export default function QuestionnairePage() {
         const completed = Boolean(p.questionnaire.completed)
         setProfileSavedCompleted(completed)
         setShowWizard(!completed)
+        setSingleScreenEdit(false)
         setProfileUpdatedAt(p.updated_at ?? null)
         setDoneMsg(null)
       })
@@ -156,6 +313,7 @@ export default function QuestionnairePage() {
           form.reset(defaults)
           setProfileSavedCompleted(false)
           setShowWizard(true)
+          setSingleScreenEdit(false)
           setProfileUpdatedAt(null)
         }
       })
@@ -179,8 +337,23 @@ export default function QuestionnairePage() {
 
   const beginChangeSearch = () => {
     setShowWizard(true)
+    setSingleScreenEdit(true)
     setStep(0)
     setDoneMsg(null)
+  }
+
+  const cancelEditing = () => {
+    setShowWizard(false)
+    setSingleScreenEdit(false)
+    setStep(0)
+    void fetchBuyerProfile()
+      .then((p) => {
+        const prev = answersFromProfile(p.questionnaire.answers as Record<string, unknown>)
+        form.reset({ ...defaults, ...prev })
+      })
+      .catch(() => {
+        form.reset(defaults)
+      })
   }
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -197,6 +370,7 @@ export default function QuestionnairePage() {
       setProfileSavedCompleted(Boolean(p.questionnaire.completed))
       setProfileUpdatedAt(p.updated_at ?? null)
       setShowWizard(false)
+      setSingleScreenEdit(false)
       setDoneMsg('Your preferences have been saved.')
     } finally {
       setSubmitting(false)
@@ -269,6 +443,41 @@ export default function QuestionnairePage() {
     )
   }
 
+  if (singleScreenEdit && profileSavedCompleted) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-8">
+        <PageHeader
+          eyebrow="Edit preferences"
+          title="Change your search"
+          description="Adjust budget, location, size, accessibility, and style in one place. Save when you are done to refresh your matches."
+        />
+
+        <Card className="border-border/70 shadow-md shadow-black/[0.04]">
+          <CardHeader>
+            <CardTitle className="font-display text-xl">Your criteria</CardTitle>
+            <CardDescription>All fields from your buyer questionnaire—no need to step through each screen.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <QuestionnaireFieldsBody form={form} />
+            <div className="flex flex-col gap-3 border-t border-border/60 pt-8 sm:flex-row sm:justify-end sm:gap-3">
+              <Button type="button" variant="outline" className="rounded-full" onClick={cancelEditing}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="rounded-full"
+                disabled={submitting}
+                onClick={() => void onSubmit()}
+              >
+                {submitting ? 'Saving…' : 'Save profile'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto max-w-xl space-y-8">
       <PageHeader
@@ -288,109 +497,16 @@ export default function QuestionnairePage() {
           <CardDescription>Your information is used to improve your home matches and recommendations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {step === 0 && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="budgetMax">Max budget (USD)</Label>
-                <Input id="budgetMax" type="number" {...form.register('budgetMax')} />
-                {form.formState.errors.budgetMax ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.budgetMax.message}</p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="preferredCities">Preferred cities or areas</Label>
-                <Input id="preferredCities" {...form.register('preferredCities')} />
-                {form.formState.errors.preferredCities ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.preferredCities.message}</p>
-                ) : null}
-              </div>
-            </>
-          )}
+          {step === 0 && <QBudgetFields form={form} />}
 
-          {step === 1 && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="minBeds">Minimum bedrooms</Label>
-                <Input id="minBeds" type="number" {...form.register('minBeds')} />
-                {form.formState.errors.minBeds ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.minBeds.message}</p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="minBaths">Minimum bathrooms</Label>
-                <Input id="minBaths" type="number" step="0.5" {...form.register('minBaths')} />
-                {form.formState.errors.minBaths ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.minBaths.message}</p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="minSqft">Minimum sq ft</Label>
-                <Input id="minSqft" type="number" {...form.register('minSqft')} />
-                {form.formState.errors.minSqft ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.minSqft.message}</p>
-                ) : null}
-              </div>
-            </>
-          )}
+          {step === 1 && <QSizeFields form={form} />}
 
-          {step === 2 && (
-            <>
-              <div className="flex items-center gap-2">
-                <Controller
-                  control={form.control}
-                  name="singleStory"
-                  render={({ field }) => (
-                    <Checkbox
-                      id="singleStory"
-                      checked={field.value}
-                      onCheckedChange={(c) => field.onChange(c === true)}
-                    />
-                  )}
-                />
-                <Label htmlFor="singleStory">Prefer single-story</Label>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="accessibilityNotes">Accessibility or mobility notes</Label>
-                <Textarea id="accessibilityNotes" {...form.register('accessibilityNotes')} />
-              </div>
-            </>
-          )}
+          {step === 2 && <QAccessibilityFields form={form} />}
 
           {step === 3 && (
             <div className="space-y-3">
               <Label>Styles you like</Label>
-              <Controller
-                control={form.control}
-                name="styles"
-                render={({ field }) => (
-                  <ul className="space-y-2">
-                    {STYLE_OPTIONS.map((s) => {
-                      const checked = field.value.includes(s)
-                      return (
-                        <li
-                          key={s}
-                          className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 transition-colors hover:bg-muted/50"
-                        >
-                          <Checkbox
-                            id={`style-${s}`}
-                            checked={checked}
-                            onCheckedChange={(c) => {
-                              if (c === true) field.onChange([...field.value, s])
-                              else field.onChange(field.value.filter((x) => x !== s))
-                            }}
-                          />
-                          <Label htmlFor={`style-${s}`} className="flex-1 cursor-pointer font-normal">
-                            {s}
-                          </Label>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
-              />
-              {form.formState.errors.styles ? (
-                <p className="text-sm text-destructive">{form.formState.errors.styles.message}</p>
-              ) : null}
+              <QStyleFields form={form} />
             </div>
           )}
 
@@ -409,7 +525,7 @@ export default function QuestionnairePage() {
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
               {profileSavedCompleted ? (
-                <Button type="button" variant="ghost" className="rounded-full sm:order-first" onClick={() => setShowWizard(false)}>
+                <Button type="button" variant="ghost" className="rounded-full sm:order-first" onClick={cancelEditing}>
                   Cancel
                 </Button>
               ) : null}

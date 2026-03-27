@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, LandmarkIcon, ZapIcon } from 'lucide-react'
 import * as React from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -7,9 +7,10 @@ import { fetchHome } from '@/api/client'
 import { FavoriteButton } from '@/components/homes/FavoriteButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getMockEnergyCosts, getMockMortgageEstimate } from '@/lib/mockHomeMonthlyCosts'
 import { formatUsdFromCents } from '@/lib/utils'
 
 export default function HomeDetailPage() {
@@ -46,6 +47,20 @@ export default function HomeDetailPage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [lightboxOpen, images.length])
+
+  const mortgage = React.useMemo(() => (home ? getMockMortgageEstimate(home) : null), [home])
+  const energy = React.useMemo(() => (home ? getMockEnergyCosts(home) : null), [home])
+
+  const sortedSchools = React.useMemo(() => {
+    if (!home?.schools?.length) return []
+    const levelOrder = { elementary: 0, middle: 1, high: 2 } as const
+    return [...home.schools].sort((a, b) => {
+      const la = a.level != null ? levelOrder[a.level] : 99
+      const lb = b.level != null ? levelOrder[b.level] : 99
+      if (la !== lb) return la - lb
+      return a.name.localeCompare(b.name)
+    })
+  }, [home])
 
   if (loading) {
     return (
@@ -177,24 +192,222 @@ export default function HomeDetailPage() {
         </Card>
 
         <Card className="border-border/70">
-          <CardHeader>
+          <CardHeader className="space-y-1">
             <CardTitle className="font-display text-xl">Schools nearby</CardTitle>
+            <CardDescription>
+              Elementary, middle, and high options commonly discussed for this area—confirm attendance zones with the
+              district.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3 text-sm">
-              {(home.schools ?? []).map((s) => (
-                <li
-                  key={s.name}
-                  className="flex items-center justify-between gap-4 rounded-lg border border-border/50 bg-muted/30 px-4 py-3"
-                >
-                  <span className="font-medium text-foreground">{s.name}</span>
-                  <span className="shrink-0 text-muted-foreground">Rating {s.rating}/10</span>
-                </li>
-              ))}
-            </ul>
+            {sortedSchools.length > 0 ? (
+              <ul className="space-y-3 text-sm">
+                {sortedSchools.map((s) => (
+                  <li
+                    key={`${s.level ?? 'school'}-${s.name}`}
+                    className="flex flex-col gap-2 rounded-lg border border-border/50 bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <Badge variant="outline" className="w-fit shrink-0 rounded-md text-xs font-medium capitalize">
+                        {s.level === 'elementary'
+                          ? 'Elementary'
+                          : s.level === 'middle'
+                            ? 'Middle'
+                            : s.level === 'high'
+                              ? 'High'
+                              : 'School'}
+                      </Badge>
+                      <span className="font-medium leading-snug text-foreground">{s.name}</span>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-muted-foreground sm:text-right">
+                      Rating {s.rating}/10
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                School assignments vary by district and year. Your agent can confirm feeders for this community.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {mortgage && energy ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-border/70">
+            <CardHeader className="space-y-1">
+              <div className="flex items-center gap-2 text-primary">
+                <LandmarkIcon className="h-5 w-5" aria-hidden />
+                <span className="text-xs font-semibold uppercase tracking-wider">Planning estimate</span>
+              </div>
+              <CardTitle className="font-display text-xl">Estimated mortgage payment</CardTitle>
+              <CardDescription>
+                Illustrative PITI-style breakdown for planning—not a loan offer. Taxes, insurance, and HOA vary by lender
+                and property.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <dl className="grid gap-3 text-sm">
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">List price</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.listPriceCents)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Down payment ({mortgage.downPaymentPercent}%)</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.downPaymentCents)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Loan amount</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.loanAmountCents)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Rate &amp; term</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {mortgage.aprPercent.toFixed(3)}% APR, {mortgage.termYears}-year fixed
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Principal &amp; interest</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.principalInterestMonthlyCents)}/mo
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Est. property tax</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.propertyTaxMonthlyCents)}/mo
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Est. homeowners insurance</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.homeInsuranceMonthlyCents)}/mo
+                  </dd>
+                </div>
+                {mortgage.pmiMonthlyCents > 0 ? (
+                  <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                    <dt className="text-muted-foreground">Est. PMI</dt>
+                    <dd className="font-medium tabular-nums text-foreground">
+                      {formatUsdFromCents(mortgage.pmiMonthlyCents)}/mo
+                    </dd>
+                  </div>
+                ) : null}
+                {mortgage.hoaMonthlyCents > 0 ? (
+                  <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                    <dt className="text-muted-foreground">HOA</dt>
+                    <dd className="font-medium tabular-nums text-foreground">
+                      {formatUsdFromCents(mortgage.hoaMonthlyCents)}/mo
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">Total estimated housing payment</span>
+                  <span className="font-display text-2xl font-semibold tabular-nums text-foreground">
+                    {formatUsdFromCents(mortgage.totalMonthlyCents)}
+                    <span className="text-base font-normal text-muted-foreground">/mo</span>
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70">
+            <CardHeader className="space-y-1">
+              <div className="flex items-center gap-2 text-primary">
+                <ZapIcon className="h-5 w-5" aria-hidden />
+                <span className="text-xs font-semibold uppercase tracking-wider">Typical usage estimate</span>
+              </div>
+              <CardTitle className="font-display text-xl">Energy &amp; utilities</CardTitle>
+              <CardDescription>
+                Modeled for a similar-size home in this region (hot summers). Actual bills depend on usage, rates, and
+                provider.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <dl className="grid gap-3 text-sm">
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Electricity (year-round average)</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(energy.avgMonthlyCents)}/mo
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Typical summer month</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(energy.summerMonthlyCents)}/mo
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Typical winter month</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(energy.winterMonthlyCents)}/mo
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Est. annual electricity use</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {energy.estimatedAnnualKwh.toLocaleString()} kWh
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                  <dt className="text-muted-foreground">Cooling share of electric bill</dt>
+                  <dd className="font-medium tabular-nums text-foreground">~{energy.coolingPctOfBill}%</dd>
+                </div>
+                {energy.gasMonthlyCents > 0 ? (
+                  <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                    <dt className="text-muted-foreground">Natural gas (heat / hot water)</dt>
+                    <dd className="font-medium tabular-nums text-foreground">
+                      {formatUsdFromCents(energy.gasMonthlyCents)}/mo avg
+                    </dd>
+                  </div>
+                ) : (
+                  <div className="flex justify-between gap-4 border-b border-border/40 pb-3">
+                    <dt className="text-muted-foreground">Natural gas</dt>
+                    <dd className="text-muted-foreground">Not modeled (all-electric or N/A)</dd>
+                  </div>
+                )}
+                <div className="flex justify-between gap-4 pb-1">
+                  <dt className="text-muted-foreground">Water &amp; wastewater</dt>
+                  <dd className="font-medium tabular-nums text-foreground">
+                    {formatUsdFromCents(energy.waterWastewaterMonthlyCents)}/mo est.
+                  </dd>
+                </div>
+              </dl>
+              <div className="rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="font-medium text-foreground">Rough monthly carry (housing + utilities)</p>
+                <p className="mt-1 tabular-nums">
+                  {formatUsdFromCents(mortgage.totalMonthlyCents)} housing +{' '}
+                  {formatUsdFromCents(
+                    energy.avgMonthlyCents +
+                      energy.waterWastewaterMonthlyCents +
+                      energy.gasMonthlyCents,
+                  )}{' '}
+                  utilities ≈{' '}
+                  <span className="font-semibold text-foreground">
+                    {formatUsdFromCents(
+                      mortgage.totalMonthlyCents +
+                        energy.avgMonthlyCents +
+                        energy.waterWastewaterMonthlyCents +
+                        energy.gasMonthlyCents,
+                    )}
+                    /mo
+                  </span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </article>
   )
 }
